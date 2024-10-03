@@ -10,6 +10,8 @@ async function run() {
 		const octokit = github.getOctokit(process.env.GITHUB_TOKEN)
 		const releaseType = process.env.RELEASE_TYPE || 'patch'
 		const jsonFiles = (process.env.JSON_FILES || '').split(' ').map(f => path.resolve(f))
+		const commitMessage = process.env.COMMIT_MESSAGE || 'Update version to {version}'
+		const tagMessage = process.env.TAG_MESSAGE || ''
 
 		// Get the repo owner and name
 		const { owner, repo } = github.context.repo
@@ -47,15 +49,21 @@ async function run() {
 		await exec.exec('git', ['config', 'user.name', 'github-actions'])
 		await exec.exec('git', ['config', 'user.email', 'github-actions@github.com'])
 
+		// Get formatted tag
+		const newTag = hasVPrefix ? `v${newVersion}` : newVersion
+
 		// Commit changes
 		if (hasChanges) {
 			await exec.exec('git', ['add', ...jsonFiles])
-			await exec.exec('git', ['commit', '-m', `Update version to ${newVersion}`])
+			await exec.exec('git', ['commit', '-m', commitMessage.replace('{version}', newVersion).replace('{tag}', newTag)])
 		}
 
 		// Create tag
-		const newTag = hasVPrefix ? `v${newVersion}` : newVersion
-		await exec.exec('git', ['tag', '-a', newTag, '-m', `Release ${newTag}`])
+		if (tagMessage) {
+			await exec.exec('git', ['tag', '-a', newTag, '-m', tagMessage.replace('{version}', newVersion).replace('{tag}', newTag)])
+		} else {
+			await exec.exec('git', ['tag', '-a', newTag])
+		}
 
 		// Push the tag
 		await exec.exec('git', ['push', 'origin', newTag, '--force'])

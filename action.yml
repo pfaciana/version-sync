@@ -8,6 +8,14 @@ inputs:
     description: The type of release to do (patch, minor, major)
     required: false
     default: patch
+  commit-message:
+    description: Custom message for the commit. Use {version} to include the new version dynamically. Leave empty for no message.
+    required: false
+    default: ''
+  tag-message:
+    description: Custom message for the tag. Use {tag} to include the new tag dynamically. Leave empty for no message.
+    required: false
+    default: ''
 runs:
   using: composite
   steps:
@@ -34,3 +42,5 @@ runs:
       env:
         RELEASE_TYPE: ${{ inputs.release-type }}
         JSON_FILES: ${{ inputs.json-files }}
+        COMMIT_MESSAGE: ${{ inputs.commit-message }}
+        TAG_MESSAGE: ${{ inputs.tag-message }}

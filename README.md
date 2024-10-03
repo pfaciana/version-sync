@@ -3,9 +3,10 @@
 A GitHub Action that automatically checks and updates semantic versions across multiple JSON files in your repository, ensuring consistency and streamlining version management.
 
 The problem is intends to solve is when JSON file have a version property and you want to keep the version of the git tag and JSON file(s) in sync. For example, you may create a tag of v1.1.0 but forget to update your package.json version from v1.0.0. This checks for this and bring your package.json (and any other JSON files) in sync with the git tag version. It also works if your JSON file version is ahead of the git tag. It will make a git tag to bring your repo in sync.
+
 ### Features
 
-- The action automatically detects and maintains versions with and without prefixes (e.g., `v1.2.3` and `1.2.3`) 
+- The action automatically detects and maintains versions with and without prefixes (e.g., `v1.2.3` and `1.2.3`)
 - A debug mode can be enabled by setting the `DEBUG_MODE` environment variable to `1` and listening on port `9229` locally
 - Checks multiple JSON files for version consistency
 
@@ -29,12 +30,12 @@ To use this action in your workflow, simply reference it in your workflow file.
 Add the following step to your workflow file:
 
 ```yaml
-- name: Sync Versions  
-  id: sync_versions  
+- name: Sync Versions
+  id: sync_versions
   uses: pfaciana/version-sync
   with:
     json-files: package.json
-  env:  
+  env:
     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
@@ -79,25 +80,43 @@ This workflow will run on pushes to the main branch, update versions in three JS
 
 ### Inputs
 
-| Name         | Description                                                     | Required | Default |
-| ------------ | --------------------------------------------------------------- | -------- | ------- |
-| json-files   | Space-delimited list of JSON files to check                     | Yes      | N/A     |
-| release-type | Type of version bump to perform (patch, minor, major) if needed | No       | `patch` |
+| Name           | Description                                                                                             | Required | Default                       |
+|----------------|---------------------------------------------------------------------------------------------------------|----------|-------------------------------|
+| json-files     | Space-delimited list of JSON files to check                                                             | Yes      |                               |
+| release-type   | Type of version bump to perform (patch, minor, major) if needed                                         | No       | `patch`                       |
+| commit-message | Custom message for the commit. Use `{version}` to include the new version dynamically.                  | No       | `Update version to {version}` |
+| tag-message    | Custom message for the tag. Use `{tag}` to include the new tag dynamically. Leave empty for no message. | No       |                               |
+
 `release-type` is used to determine what the semantic version should be when the versions are out of sync.
- 
+
 For example, if we have versions `v1.0.1` and `v1.0.2` and we want them in sync, then...
-* if `release-type` is `patch`, we'll sync to `v1.0.2` (default)
-* if `release-type` is `minor`, we'll sync to `v1.1.0` 
-* if `release-type` is `major`, we'll sync to `v2.0.0`
+
+* if `release-type` is `patch`, they'll sync to `v1.0.2` (default)
+* if `release-type` is `minor`, they'll sync to `v1.1.0`
+* if `release-type` is `major`, they'll sync to `v2.0.0`
 * If versions are already in sync, this input is ignored
+
+`commit-message` allows you to customize the commit message:
+
+* The default message is "Update version to {version}".
+
+`tag-message` allows you to customize the message associated with the tag:
+
+* If left empty (default), a tag will be created without a message.
+
+### Message variables
+
+There are two optional dynamic variables, `{version}` and `{tag}`, you can use both, either or none in your commit and tag messages.
+They are very similar, with the only difference being `{tag}` will preserve `v` prefix and the `{version}` will not:
+
+* For example, if you use the `v` prefix in your tag, and the sync version is `v1.2.3`
+    * `{version}` will be `1.2.3`
+    * `{tag}` will be `v1.2.3`
+* If you don't use the `v` prefix, then `{version}` and `{tag}` will be exactly the same.
+
 ### Outputs
 
 This action does not have any formal outputs, but it does perform the following actions:
-
-- Updates specified JSON files with new versions
-- Creates a Git commit with the version update
-- Creates a new Git tag for the version
-- Pushes changes and tag to the repository
 
 ## Examples
 
@@ -135,6 +154,19 @@ This example shows how to specify a custom release type for version increments:
     release-type: 'minor'
 ```
 
+### Custom Message for Commit and Tag
+
+This example demonstrates how to use a custom tag message with a dynamic tag value:
+
+```yaml
+- name: Sync Versions with Custom Tag Message
+  uses: pfaciana/version-sync
+  with:
+    json-files: 'package.json'
+    commit-message: 'Update version to {version}'
+    tag-message: 'Release {tag}'
+```
+
 ## FAQ
 
 ### How does this action handle version prefixes (like 'v') in tags?
@@ -157,6 +189,6 @@ A: This action is designed to update JSON files that contain a `version` field. 
 
 A: The action uses the `semver` library to calculate the next version based on the current version and the specified release type (patch, minor, or major).
 
-### Q: Can I customize the commit message and tag name?
+### Q: Can I customize the commit and tag messages?
 
-A: Currently, the commit message and tag name are automatically generated based on the new version. Customization options will be added in future releases.
+A: Yes, the docs have been updated to show how to customize the commit and tag messages.

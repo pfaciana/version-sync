@@ -1,0 +1,36 @@
+name: Version Check and Update
+description: Checks and updates semantic versions in JSON files
+inputs:
+  json-files:
+    description: Space-delimited list of JSON files to check
+    required: true
+  release-type:
+    description: The type of release to do (patch, minor, major)
+    required: false
+    default: patch
+runs:
+  using: composite
+  steps:
+    - name: Dump github context
+      if: env.DEBUG_MODE == 1
+      run: echo "$GITHUB_CONTEXT"
+      shell: bash
+      env:
+        GITHUB_CONTEXT: ${{ toJson(github) }}
+
+    - name: Node, npm versions, and install
+      run: |
+        node --version
+        npm --version
+        npm install
+        rm package-lock.json
+      shell: bash
+      working-directory: ${{ github.action_path }}
+
+    - name: Sync versions
+      id: sync_versions
+      run: node ${{ env.DEBUG_MODE == '1' && '--inspect-brk=9229' || '' }} ${{ github.action_path }}/index.js
+      shell: bash
+      env:
+        RELEASE_TYPE: ${{ inputs.release-type }}
+        JSON_FILES: ${{ inputs.json-files }}

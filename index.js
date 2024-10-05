@@ -16,15 +16,12 @@ async function run() {
 		// Get the repo owner and name
 		const { owner, repo } = github.context.repo
 
-		// Get the current branch
-		const { data: repoData } = await octokit.rest.repos.get({ owner, repo })
-		const currentBranch = repoData.default_branch
-
 		// Get the current tag
-		const { data: repoTags } = await octokit.rest.repos.listTags({ owner, repo, per_page: 100 })
-		const tags = repoTags.map(tag => tag.name)
-		const currentTag = tags[0] || '0.0.0'
+		let { stdout: currentTag } = await exec.getExecOutput('git', ['describe', '--tags', '--abbrev=0'])
+		currentTag = currentTag.trim()
+		console.log(`Current tag: ${currentTag}`)
 		const currentVersion = semver.clean(currentTag) || '0.0.0'
+		console.log(`Current version: ${currentVersion}`)
 
 		// Read and parse JSON files
 		const versions = await Promise.all(jsonFiles.map(getDataFromJsonFile))
@@ -36,6 +33,15 @@ async function run() {
 			return console.log('All versions are equal. No update needed.')
 		}
 
+		// Get the current tag
+		let { stdout: currentBranch } = await exec.getExecOutput('git', ['rev-parse', '--abbrev-ref', 'HEAD'])
+		currentBranch = currentBranch.trim()
+		console.log(`Current branch: ${currentBranch}`)
+
+		// Get all tags
+		const { data: repoTags } = await octokit.rest.repos.listTags({ owner, repo, per_page: 100 })
+		const tags = repoTags.map(tag => tag.name)
+
 		// Get the new version
 		const newVersion = getNewVersion(versions, tags, releaseType)
 
@@ -43,8 +49,8 @@ async function run() {
 		await Promise.all(versions.map(setDataToJsonFile({ version: newVersion })))
 
 		// Check for changes
-		const { stdout } = await exec.getExecOutput('git', ['status', '--porcelain'])
-		const hasChanges = !!stdout.trim().length
+		let { stdout: hasChanges } = await exec.getExecOutput('git', ['status', '--porcelain'])
+		hasChanges = !!hasChanges.trim().length
 		console.log('hasChanges', hasChanges)
 
 		await exec.exec('git', ['config', 'user.name', 'github-actions'])

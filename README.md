@@ -14,11 +14,12 @@ The problem it intends to solve is when JSON files have a version property and y
 ### How It Works
 
 1. Reads specified JSON files and extracts version information
-2. Compares versions across files and with the current Git tags
-3. Calculates the next version based on the release type and existing tags
-4. Updates JSON files with the new version
-5. Creates a Git commit and tag for the update
-6. Pushes changes to the repository
+2. Retrieves the current Git tag and branch
+3. Compares versions across files and with the current Git tags
+4. Calculates the next version based on the release type and existing tags
+5. Updates JSON files with the new version
+6. Creates a Git commit and tag for the update
+7. Pushes changes to the repository
 
 ## Getting Started
 

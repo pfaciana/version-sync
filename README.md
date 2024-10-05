@@ -2,19 +2,20 @@
 
 A GitHub Action that automatically checks and updates semantic versions across multiple JSON files in your repository, ensuring consistency and streamlining version management.
 
-The problem is intends to solve is when JSON file have a version property and you want to keep the version of the git tag and JSON file(s) in sync. For example, you may create a tag of v1.1.0 but forget to update your package.json version from v1.0.0. This checks for this and bring your package.json (and any other JSON files) in sync with the git tag version. It also works if your JSON file version is ahead of the git tag. It will make a git tag to bring your repo in sync.
+The problem it intends to solve is when JSON files have a version property and you want to keep the version of the git tag and JSON file(s) in sync. For example, you may create a tag of v1.1.0 but forget to update your package.json version from v1.0.0. This checks for this and brings your package.json (and any other JSON files) in sync with the git tag version. It also works if your JSON file version is ahead of the git tag. It will make a git tag to bring your repo in sync.
 
 ### Features
 
 - The action automatically detects and maintains versions with and without prefixes (e.g., `v1.2.3` and `1.2.3`)
 - A debug mode can be enabled by setting the `DEBUG_MODE` environment variable to `1` and listening on port `9229` locally
 - Checks multiple JSON files for version consistency
+- Handles complex version synchronization scenarios
 
 ### How It Works
 
 1. Reads specified JSON files and extracts version information
-2. Compares versions across files and with the current Git tag
-3. Calculates the next version based on the release type
+2. Compares versions across files and with the current Git tags
+3. Calculates the next version based on the release type and existing tags
 4. Updates JSON files with the new version
 5. Creates a Git commit and tag for the update
 6. Pushes changes to the repository
@@ -39,7 +40,7 @@ Add the following step to your workflow file:
     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-This will check and update versions in `package.json` and `app.json` files, using the default patch release type.
+This will check and update versions in `package.json`, using the default patch release type.
 
 ## Usage
 
@@ -71,12 +72,19 @@ jobs:
         with:
           json-files: package.json composer.json
           release-type: patch
+          commit-message: 'Update version to {version}'
+          tag-message: 'Release {tag}'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DEBUG_MODE: ${{ vars.DEBUG_MODE || '0' }}
+
+      - name: Use the new tag
+        if: steps.sync_versions.outputs.tag-name != ''
+        run:
+          echo "New tag created: ${{ steps.sync_versions.outputs.tag-name }}"
 ```
 
-This workflow will run on pushes to the main branch, update versions in three JSON files, and use a minor release type for version increments.
+This workflow will run on pushes to the main branch, update versions in two JSON files, and use a patch release type for version increments.
 
 ### Inputs
 
@@ -116,7 +124,9 @@ They are very similar, with the only difference being `{tag}` will preserve `v` 
 
 ### Outputs
 
-This action does not have any formal outputs, but it does perform the following actions:
+| Name     | Description                                                        |
+|----------|--------------------------------------------------------------------|
+| tag-name | The new tag name or an empty string if the repo is already in sync |
 
 ## Examples
 
@@ -156,10 +166,10 @@ This example shows how to specify a custom release type for version increments:
 
 ### Custom Message for Commit and Tag
 
-This example demonstrates how to use a custom tag message with a dynamic tag value:
+This example demonstrates how to use custom commit and tag messages with dynamic values:
 
 ```yaml
-- name: Sync Versions with Custom Tag Message
+- name: Sync Versions with Custom Messages
   uses: pfaciana/version-sync
   with:
     json-files: 'package.json'
@@ -169,13 +179,13 @@ This example demonstrates how to use a custom tag message with a dynamic tag val
 
 ## FAQ
 
-### How does this action handle version prefixes (like 'v') in tags?
+### Q: How does this action handle version prefixes (like 'v') in tags?
 
 A: The action automatically detects and maintains your existing versioning scheme, preserving 'v' prefixes if you use them or omitting them if you don't, ensuring consistency with your current tagging style.
 
 ### Q: What happens if there are no version changes needed?
 
-A: If all specified files already have the same version and it matches the latest Git tag, the action will not make any changes and will exit successfully.
+A: If all specified files already have the same version and it matches the latest Git tag, the action will not make any changes and will exit successfully. The `tag-name` output will be an empty string in this case.
 
 ### Q: Does this action work with private repositories?
 
@@ -187,8 +197,8 @@ A: This action is designed to update JSON files that contain a `version` field. 
 
 ### Q: How does the action determine the next version?
 
-A: The action uses the `semver` library to calculate the next version based on the current version and the specified release type (patch, minor, or major).
+A: The action uses the `semver` library to calculate the next version based on the current version, existing tags, and the specified release type (patch, minor, or major). It also checks for conflicts with existing tags to ensure a unique new version.
 
 ### Q: Can I customize the commit and tag messages?
 
-A: Yes, the docs have been updated to show how to customize the commit and tag messages.
+A: Yes, you can customize both the commit and tag messages using the `commit-message` and `tag-message` inputs. You can use `{version}` and `{tag}` placeholders in these messages to include the new version dynamically.

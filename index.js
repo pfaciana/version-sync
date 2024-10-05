@@ -3,7 +3,7 @@ const core = require('@actions/core')
 const github = require('@actions/github')
 const exec = require('@actions/exec')
 const semver = require('semver')
-const { getDataFromJsonFile, setDataToJsonFile, checkIfAllVersionsAreEqual, getNextVersion } = require('./src/index.js')
+const { getDataFromJsonFile, setDataToJsonFile, checkIfAllVersionsAreEqual, getNewVersion } = require('./src/index.js')
 
 async function run() {
 	try {
@@ -21,9 +21,9 @@ async function run() {
 		const currentBranch = repoData.default_branch
 
 		// Get the current tag
-		const { data: tags } = await octokit.rest.repos.listTags({ owner, repo, per_page: 1 })
-		const currentTag = tags[0]?.name || ''
-		const hasVPrefix = currentTag.startsWith('v')
+		const { data: repoTags } = await octokit.rest.repos.listTags({ owner, repo, per_page: 100 })
+		const tags = repoTags.map(tag => tag.name)
+		const currentTag = tags[0] || '0.0.0'
 		const currentVersion = semver.clean(currentTag) || '0.0.0'
 
 		// Read and parse JSON files
@@ -32,11 +32,12 @@ async function run() {
 		// Check if all versions are equal
 		const allEqual = checkIfAllVersionsAreEqual(currentVersion, versions)
 		if (allEqual) {
+			core.setOutput('tag-name', currentTag)
 			return console.log('All versions are equal. No update needed.')
 		}
 
-		// Get the next version
-		const newVersion = getNextVersion(currentVersion, versions, releaseType)
+		// Get the new version
+		const newVersion = getNewVersion(versions, tags, releaseType)
 
 		// Update JSON files
 		await Promise.all(versions.map(setDataToJsonFile({ version: newVersion })))
@@ -50,7 +51,7 @@ async function run() {
 		await exec.exec('git', ['config', 'user.email', 'github-actions@github.com'])
 
 		// Get formatted tag
-		const newTag = hasVPrefix ? `v${newVersion}` : newVersion
+		const newTag = currentTag.startsWith('v') ? `v${newVersion}` : newVersion
 
 		// Commit changes
 		if (hasChanges) {
@@ -71,6 +72,7 @@ async function run() {
 		// Push the branch
 		await exec.exec('git', ['push', 'origin', currentBranch])
 
+		core.setOutput('tag-name', newTag)
 		console.log(`Created new annotated tag: ${newTag}`)
 	} catch (error) {
 		core.setFailed(error.message)

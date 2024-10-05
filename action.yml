@@ -16,6 +16,10 @@ inputs:
     description: Custom message for the tag. Use {tag} to include the new tag dynamically. Leave empty for no message.
     required: false
     default: ''
+outputs:
+  tag-name:
+    description: the new tag name or empty string if tag if the repo is already in sync
+    value: ${{ steps.sync_versions.outputs.tag-name || '' }}
 runs:
   using: composite
   steps:

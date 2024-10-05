@@ -41,17 +41,45 @@ function checkIfAllVersionsAreEqual(currentVersion, versions) {
 	return allEqual && versions[0].version === currentVersion
 }
 
-function getNextVersion(currentVersion, versions, release, options, identifier, identifierBase) {
+function getNextVersion(currentVersion, versions, releaseType, options, identifier, identifierBase) {
 	const maxFileVersion = semver.maxSatisfying([...versions.map(v => v.version)], '*')
 	const minFileVersion = semver.minSatisfying([...versions.map(v => v.version)], '*')
 	if (currentVersion === maxFileVersion && currentVersion === minFileVersion) {
 		return currentVersion
 	}
 	const maxVersion = semver.maxSatisfying([currentVersion, maxFileVersion], '*')
-	if (maxFileVersion === maxVersion) {
+	if (maxFileVersion === maxVersion && releaseType === 'patch') {
 		return maxFileVersion
 	}
-	return semver.inc(currentVersion, release, options, identifier, identifierBase)
+	return semver.inc(currentVersion, releaseType, options, identifier, identifierBase)
+}
+
+function getMaxTagVersion(versions, tags, releaseType = 'patch') {
+	const maxFileVersion = semver.maxSatisfying([...versions.map(v => v.version)], '*')
+	const range = releaseType === 'major' ? '*' : `~${semver.major(maxFileVersion)}.${semver.minor(maxFileVersion)}.0`
+	return semver.maxSatisfying(tags, range)
+}
+
+function getNewVersion(versions, tags, releaseType = 'patch') {
+	// Get latest tag with the same major.minor version as the newVersion
+	let maxTagVersion = getMaxTagVersion(versions, tags, releaseType)
+
+	// Get the next version
+	let newVersion
+	if (maxTagVersion) {
+		do {
+			newVersion = getNextVersion(maxTagVersion, versions, releaseType)
+			maxTagVersion = getMaxTagVersion([{ version: newVersion }], tags, releaseType)
+			if (maxTagVersion && semver.gte(maxTagVersion, newVersion)) {
+				console.log(`Conflict: ${newVersion} already exists in tags, bumping version!`)
+			}
+		} while (maxTagVersion && semver.gte(maxTagVersion, newVersion))
+	} else {
+		newVersion = semver.maxSatisfying([...versions.map(v => v.version)], '*')
+	}
+	console.log(`New version: ${newVersion}`)
+
+	return newVersion
 }
 
 module.exports = {
@@ -59,4 +87,5 @@ module.exports = {
 	setDataToJsonFile,
 	checkIfAllVersionsAreEqual,
 	getNextVersion,
+	getNewVersion,
 }

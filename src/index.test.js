@@ -1,7 +1,7 @@
 import path from 'path'
 import fs from 'fs/promises'
 import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest'
-import { getDataFromJsonFile, setDataToJsonFile, checkIfAllVersionsAreEqual, getNextVersion } from './index'
+import { getDataFromJsonFile, setDataToJsonFile, checkIfAllVersionsAreEqual, getNextVersion, getNewVersion } from './index'
 
 const testDir = path.resolve('./test')
 const mockDir = path.resolve('./test/__mocks__')
@@ -149,5 +149,105 @@ describe('getNextVersion', () => {
 		const versions = [{ version: '1.0.2' }, { version: '1.0.3' }]
 		const result = getNextVersion(currentVersion, versions, 'patch')
 		expect(result).toBe('1.0.3')
+	})
+
+	it('should bump the version when version are empty', () => {
+		expect(getNextVersion('1.0.0', [], 'patch')).toBe('1.0.1')
+		expect(getNextVersion('1.0.0', [], 'minor')).toBe('1.1.0')
+		expect(getNextVersion('1.0.0', [], 'major')).toBe('2.0.0')
+
+		expect(getNextVersion('7.8.9', [], 'patch')).toBe('7.8.10')
+		expect(getNextVersion('7.8.9', [], 'minor')).toBe('7.9.0')
+		expect(getNextVersion('7.8.9', [], 'major')).toBe('8.0.0')
+	})
+})
+
+describe('getNewVersion', () => {
+	it('standard use case', () => {
+		const versions = [{ version: '1.2.1' }, { version: '1.2.2' }]
+		const tags = ['v1.0.0', 'v1.0.1', 'v1.1.0', 'v1.1.1', 'v1.1.2', 'v1.2.0', 'v1.2.1']
+		const resultPatch = getNewVersion(versions, tags, 'patch')
+		expect(resultPatch).toBe('1.2.2')
+		const resultMinor = getNewVersion(versions, tags, 'minor')
+		expect(resultMinor).toBe('1.3.0')
+		const resultMajor = getNewVersion(versions, tags, 'major')
+		expect(resultMajor).toBe('2.0.0')
+	})
+
+	it('standard use case, minor bump', () => {
+		const versions = [{ version: '1.2.1' }, { version: '1.3.0' }]
+		const tags = ['v1.0.0', 'v1.0.1', 'v1.1.0', 'v1.1.1', 'v1.1.2', 'v1.2.0', 'v1.2.1']
+		const resultPatch = getNewVersion(versions, tags, 'patch')
+		expect(resultPatch).toBe('1.3.0')
+		const resultMinor = getNewVersion(versions, tags, 'minor')
+		expect(resultMinor).toBe('1.3.0')
+		const resultMajor = getNewVersion(versions, tags, 'major')
+		expect(resultMajor).toBe('2.0.0')
+	})
+
+	it('standard use case, skip version', () => {
+		const versions = [{ version: '1.2.1' }, { version: '1.3.1' }]
+		const tags = ['v1.0.0', 'v1.0.1', 'v1.1.0', 'v1.1.1', 'v1.1.2', 'v1.2.0', 'v1.2.1']
+		const resultPatch = getNewVersion(versions, tags, 'patch')
+		expect(resultPatch).toBe('1.3.1')
+		const resultMinor = getNewVersion(versions, tags, 'minor')
+		expect(resultMinor).toBe('1.3.1')
+		const resultMajor = getNewVersion(versions, tags, 'major')
+		expect(resultMajor).toBe('2.0.0')
+	})
+
+	it('Tag has lower patch version as the max file version', () => {
+		const versions = [{ version: '1.1.2' }, { version: '1.1.3' }]
+		const tags = ['v1.0.0', 'v1.0.1', 'v1.1.0', 'v1.1.1', 'v1.1.2', 'v1.2.0', 'v1.2.1', 'v2.0.0', 'v2.0.1']
+		const resultPatch = getNewVersion(versions, tags, 'patch')
+		expect(resultPatch).toBe('1.1.3')
+		const resultMinor = getNewVersion(versions, tags, 'minor')
+		expect(resultMinor).toBe('1.3.0')
+		const resultMajor = getNewVersion(versions, tags, 'major')
+		expect(resultMajor).toBe('3.0.0')
+	})
+
+	it('Tag has higher patch version as the max file version', () => {
+		const versions = [{ version: '1.2.0' }, { version: '1.2.0' }]
+		const tags = ['v1.0.0', 'v1.0.1', 'v1.1.0', 'v1.1.1', 'v1.1.2', 'v1.2.0', 'v1.2.1', 'v2.0.0', 'v2.0.1']
+		const resultPatch = getNewVersion(versions, tags, 'patch')
+		expect(resultPatch).toBe('1.2.2')
+		const resultMinor = getNewVersion(versions, tags, 'minor')
+		expect(resultMinor).toBe('1.3.0')
+		const resultMajor = getNewVersion(versions, tags, 'major')
+		expect(resultMajor).toBe('3.0.0')
+	})
+
+	it('Tag has same patch version as the max file version', () => {
+		const versions = [{ version: '1.1.1' }, { version: '1.1.2' }]
+		const tags = ['v1.0.0', 'v1.0.1', 'v1.1.0', 'v1.1.1', 'v1.1.2', 'v1.2.0', 'v1.2.1', 'v1.3.3', 'v1.4.4', 'v2.0.0', 'v2.4.5']
+		const resultPatch = getNewVersion(versions, tags, 'patch')
+		expect(resultPatch).toBe('1.1.3')
+		const resultMinor = getNewVersion(versions, tags, 'minor')
+		expect(resultMinor).toBe('1.5.0')
+		const resultMajor = getNewVersion(versions, tags, 'major')
+		expect(resultMajor).toBe('3.0.0')
+	})
+
+	it('All versions are the same', () => {
+		const versions = [{ version: '1.1.2' }, { version: '1.1.2' }]
+		const tags = ['v1.0.0', 'v1.0.1', 'v1.1.0', 'v1.1.1', 'v1.1.2', 'v1.2.0', 'v1.2.1', 'v2.0.0', 'v2.0.1', 'v3.0.0']
+		const resultPatch = getNewVersion(versions, tags, 'patch')
+		expect(resultPatch).toBe('1.1.3')
+		const resultMinor = getNewVersion(versions, tags, 'minor')
+		expect(resultMinor).toBe('1.3.0')
+		const resultMajor = getNewVersion(versions, tags, 'major')
+		expect(resultMajor).toBe('4.0.0')
+	})
+
+	it('All versions are the same, large skips in tags', () => {
+		const versions = [{ version: '1.1.2' }, { version: '1.1.2' }]
+		const tags = ['v1.0.0', 'v1.0.1', 'v1.1.0', 'v1.1.1', 'v1.1.2', 'v1.2.0', 'v1.2.1', 'v2.0.0', 'v2.0.1', 'v3.3.3']
+		const resultPatch = getNewVersion(versions, tags, 'patch')
+		expect(resultPatch).toBe('1.1.3')
+		const resultMinor = getNewVersion(versions, tags, 'minor')
+		expect(resultMinor).toBe('1.3.0')
+		const resultMajor = getNewVersion(versions, tags, 'major')
+		expect(resultMajor).toBe('4.0.0')
 	})
 })

@@ -45,9 +45,23 @@ This will check and update versions in `package.json`, using the default patch r
 
 ## Usage
 
+### Important: Checkout Configuration
+
+Before using this action, it's crucial to properly configure the checkout step in your workflow. The following configuration is required for this action to work correctly:
+
+```yaml
+- name: Checkout Code
+  uses: actions/checkout@v4
+  with:
+    fetch-depth: 0  # Fetch all history for all branches and tags
+    fetch-tags: true  # Fetch all tags
+```
+
+These options ensure that the action has access to the full Git history and all tags, which are necessary for proper version comparison and updating.
+
 ### Full Usage
 
-Here's a more comprehensive example of how to use the Version Check and Update Action:
+Here's a comprehensive example of how to use the Version Check and Update Action:
 
 ```yaml
 name: Version Management
@@ -66,6 +80,9 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for all branches and tags
+          fetch-tags: true  # Fetch all tags
 
       - name: Sync Versions
         id: sync_versions

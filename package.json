@@ -1,6 +1,6 @@
 {
 	"name": "version-check-and-update-action",
-	"version": "1.3.0",
+	"version": "1.3.1",
 	"description": "A GitHub Action to check and update semantic versions in JSON files",
 	"main": "index.js",
 	"author": "Phil Faciana <phil@renderdev.com> (https://renderdev.com/)",

@@ -250,4 +250,15 @@ describe('getNewVersion', () => {
 		const resultMajor = getNewVersion(versions, tags, 'major')
 		expect(resultMajor).toBe('4.0.0')
 	})
+
+	it('No tags yet in the repo', () => {
+		const versions = [{ version: '1.1.1' }, { version: '1.1.2' }]
+		const tags = []
+		const resultPatch = getNewVersion(versions, tags, 'patch')
+		expect(resultPatch).toBe('1.1.2')
+		const resultMinor = getNewVersion(versions, tags, 'minor')
+		expect(resultMinor).toBe('1.1.2')
+		const resultMajor = getNewVersion(versions, tags, 'major')
+		expect(resultMajor).toBe('1.1.2')
+	})
 })

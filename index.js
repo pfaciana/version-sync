@@ -30,6 +30,7 @@ async function run() {
 		const allEqual = checkIfAllVersionsAreEqual(currentVersion, versions)
 		if (allEqual) {
 			core.setOutput('tag-name', currentTag)
+			core.setOutput('new-tag-name', '')
 			return console.log('All versions are equal. No update needed.')
 		}
 
@@ -79,6 +80,7 @@ async function run() {
 		await exec.exec('git', ['push', 'origin', currentBranch])
 
 		core.setOutput('tag-name', newTag)
+		core.setOutput('new-tag-name', newTag)
 		console.log(`Created new annotated tag: ${newTag}`)
 	} catch (error) {
 		core.setFailed(error.message)

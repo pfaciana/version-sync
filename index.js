@@ -33,7 +33,7 @@ async function run() {
 			return console.log('All versions are equal. No update needed.')
 		}
 
-		// Get the current tag
+		// Get the current branch
 		let { stdout: currentBranch } = await exec.getExecOutput('git', ['rev-parse', '--abbrev-ref', 'HEAD'])
 		currentBranch = currentBranch.trim()
 		console.log(`Current branch: ${currentBranch}`)

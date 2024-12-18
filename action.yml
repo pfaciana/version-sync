@@ -18,8 +18,11 @@ inputs:
     default: ''
 outputs:
   tag-name:
-    description: the new tag name or empty string if tag if the repo is already in sync
+    description: the new tag name or the current tag name if the repo is already in sync
     value: ${{ steps.sync_versions.outputs.tag-name || '' }}
+  new-tag-name:
+    description: the new tag name or empty string if tag if the repo is already in sync
+    value: ${{ steps.sync_versions.outputs.new-tag-name || '' }}
 runs:
   using: composite
   steps:

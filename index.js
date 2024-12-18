@@ -17,9 +17,14 @@ async function run() {
 		const { owner, repo } = github.context.repo
 
 		// Get the current tag
-		let { stdout: currentTag } = await exec.getExecOutput('git', ['describe', '--tags', '--abbrev=0'])
-		currentTag = currentTag.trim()
-		console.log(`Current tag: ${currentTag}`)
+		let currentTag = 'v0.0.0'
+		try {
+			const { stdout } = await exec.getExecOutput('git', ['describe', '--tags', '--abbrev=0'])
+			currentTag = stdout.trim() || 'v0.0.0'
+			console.log(`Current tag: ${currentTag}`)
+		} catch (error) {
+			console.warn('Unable to retrieve the current tag. Using fallback value.')
+		}
 		const currentVersion = semver.clean(currentTag) || '0.0.0'
 		console.log(`Current version: ${currentVersion}`)
 

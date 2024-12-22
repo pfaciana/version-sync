@@ -5,9 +5,13 @@ inputs:
     description: Space-delimited list of JSON files to check
     required: true
   release-type:
-    description: The type of release to do (patch, minor, major)
+    description: The type of release to perform (patch, minor, major), if needed
     required: false
     default: patch
+  force-release:
+    description: The type of release to force (patch, minor, major, ''), always
+    required: false
+    default: ''
   commit-message:
     description: Custom message for the commit. Use {version} to include the new version dynamically. Leave empty for no message.
     required: false
@@ -48,6 +52,7 @@ runs:
       shell: bash
       env:
         RELEASE_TYPE: ${{ inputs.release-type }}
+        FORCE_RELEASE: ${{ inputs.force-release }}
         JSON_FILES: ${{ inputs.json-files }}
         COMMIT_MESSAGE: ${{ inputs.commit-message }}
         TAG_MESSAGE: ${{ inputs.tag-message }}

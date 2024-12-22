@@ -68,6 +68,17 @@ name: Version Management
 
 on:
   workflow_dispatch:
+    inputs:
+      force-release:
+        description: The type of release to force (patch, minor, major, "")
+        required: false
+        default: ""
+        type: choice
+        options:
+          - ""
+          - patch
+          - minor
+          - major
   push:
     branches:
       - master
@@ -90,6 +101,7 @@ jobs:
         with:
           json-files: package.json composer.json
           release-type: patch
+          force-release: ${{ github.event.inputs.force-release || '' }}
           commit-message: 'Update version to {version}'
           tag-message: 'Release {tag}'
         env:
@@ -110,6 +122,7 @@ This workflow will run on pushes to the main branch, update versions in two JSON
 |----------------|---------------------------------------------------------------------------------------------------------|----------|-------------------------------|
 | json-files     | Space-delimited list of JSON files to check                                                             | Yes      |                               |
 | release-type   | Type of version bump to perform (patch, minor, major) if needed                                         | No       | `patch`                       |
+| force-release  | Type of version bump to force (patch, minor, major, '')                                                 | No       | ``                            |
 | commit-message | Custom message for the commit. Use `{version}` to include the new version dynamically.                  | No       | `Update version to {version}` |
 | tag-message    | Custom message for the tag. Use `{tag}` to include the new tag dynamically. Leave empty for no message. | No       |                               |
 
@@ -121,6 +134,10 @@ For example, if we have versions `v1.0.1` and `v1.0.2` and we want them in sync,
 * if `release-type` is `minor`, they'll sync to `v1.1.0`
 * if `release-type` is `major`, they'll sync to `v2.0.0`
 * If versions are already in sync, this input is ignored
+
+`force-release` is used to force a bump, even if all versions are in sync
+
+This was added so a version bump could be triggered manually in a workflow via a `workflow_dispatch` event
 
 `commit-message` allows you to customize the commit message:
 
@@ -136,8 +153,8 @@ There are two optional dynamic variables, `{version}` and `{tag}`, you can use b
 They are very similar, with the only difference being `{tag}` will preserve `v` prefix and the `{version}` will not:
 
 * For example, if you use the `v` prefix in your tag, and the sync version is `v1.2.3`
-    * `{version}` will be `1.2.3`
-    * `{tag}` will be `v1.2.3`
+	* `{version}` will be `1.2.3`
+	* `{tag}` will be `v1.2.3`
 * If you don't use the `v` prefix, then `{version}` and `{tag}` will be exactly the same.
 
 ### Outputs

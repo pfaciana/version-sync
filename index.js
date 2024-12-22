@@ -8,7 +8,8 @@ const { getDataFromJsonFile, setDataToJsonFile, checkIfAllVersionsAreEqual, getN
 async function run() {
 	try {
 		const octokit = github.getOctokit(process.env.GITHUB_TOKEN)
-		const releaseType = process.env.RELEASE_TYPE || 'patch'
+		let releaseType = process.env.RELEASE_TYPE || 'patch'
+		const forceRelease = process.env.FORCE_RELEASE || ''
 		const jsonFiles = (process.env.JSON_FILES || '').split(' ').map(f => path.resolve(f))
 		const commitMessage = process.env.COMMIT_MESSAGE || 'Update version to {version}'
 		const tagMessage = process.env.TAG_MESSAGE || ''
@@ -33,10 +34,15 @@ async function run() {
 
 		// Check if all versions are equal
 		const allEqual = checkIfAllVersionsAreEqual(currentVersion, versions)
-		if (allEqual) {
+		if (allEqual && !forceRelease) {
 			core.setOutput('tag-name', currentTag)
 			core.setOutput('new-tag-name', '')
 			return console.log('All versions are equal. No update needed.')
+		}
+
+		if (forceRelease) {
+			releaseType = forceRelease
+			allEqual && console.log(`All versions are equal, but force a version bump with a "${forceRelease}" release`)
 		}
 
 		// Get the current branch

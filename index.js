@@ -45,6 +45,14 @@ async function run() {
 			allEqual && console.log(`All versions are equal, but force a version bump with a "${forceRelease}" release`)
 		}
 
+		versions.forEach(v => {
+			if (v.version !== currentVersion) {
+				console.log(`Version mismatch: ${v.file} has version: ${v.version}, while current tag version is: ${currentVersion}`)
+			} else {
+				console.log(`Version match: ${v.file} has version: ${v.version}`)
+			}
+		})
+
 		// Get the current branch
 		let { stdout: currentBranch } = await exec.getExecOutput('git', ['rev-parse', '--abbrev-ref', 'HEAD'])
 		currentBranch = currentBranch.trim()
